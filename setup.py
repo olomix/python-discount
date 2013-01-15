@@ -1,6 +1,4 @@
 import os
-import posixpath
-import shutil
 import subprocess
 import urllib2
 
@@ -8,7 +6,7 @@ from distutils.command.build_ext import build_ext as _build_ext
 from distutils.core import setup, Extension
 
 
-DEFAULT_DISCOUNT_VERSION = '1.6.6'
+DEFAULT_DISCOUNT_VERSION = '2.1.5a'
 
 
 DEFAULT_DISCOUNT_DOWNLOAD_URL = (
@@ -25,9 +23,6 @@ DEFAULT_DISCOUNT_CONFIGURE_OPTS = (
 
     # A^B becomes A<sup>B</sup>
     '--enable-superscript '
-
-    # underscores aren'\''t special in the middle of words
-    '--relaxed-emphasis '
 
     # Set tabstops to N characters (default is 4)
     '--with-tabstops=4 '
@@ -78,18 +73,18 @@ class build_ext(_build_ext):
                 fp.write(data.read())
                 fp.close()
 
-                print 'Extracting %s...' % filepath
+            print 'Extracting %s...' % filepath
 
-                subprocess.call(
-                    ['tar', 'xzf', filepath, '-C', self.build_temp]
-                )
+            subprocess.call(
+                ['tar', 'xzf', filepath, '-C', self.build_temp]
+            )
 
-                # find extracted source dir
-                for name in os.listdir(self.build_temp):
-                    candidate_path = os.path.join(self.build_temp, name)
-                    if (os.path.isdir(candidate_path) and
-                        os.path.exists(os.path.join(candidate_path, 'markdown.h'))):
-                        discount_src_path = candidate_path
+            # find extracted source dir
+            for name in os.listdir(self.build_temp):
+                candidate_path = os.path.join(self.build_temp, name)
+                if (os.path.isdir(candidate_path) and
+                    os.path.exists(os.path.join(candidate_path, 'markdown.h'))):
+                    discount_src_path = candidate_path
 
         else:
             discount_src_path = self.discount_src_path
@@ -102,6 +97,14 @@ class build_ext(_build_ext):
                 ['./configure.sh',] + self.discount_configure_opts.split(),
                 env=os.environ
             )
+            os.chdir(current_dir)
+
+        if not os.path.exists(
+            os.path.join(discount_src_path, 'blocktags')):
+            current_dir = os.getcwd()
+            os.chdir(discount_src_path)
+            with open('blocktags', 'wb') as f:
+                subprocess.call(['./mktags',], env=os.environ, stdout=f)
             os.chdir(current_dir)
 
         ext.sources = [
@@ -118,15 +121,6 @@ class build_ext(_build_ext):
         _build_ext.build_extension(self, ext)
 
         ext_filename = self.get_ext_filename(ext.name)
-
-        if not os.path.exists(ext_filename):
-            # Copy the shared library to same dir as setup.py for
-            # convenience, helpful for running test suite without
-            # installing package.
-            shutil.copy(
-                os.path.join(self.build_lib, ext_filename),
-                ext_filename
-            )
 
 
 setup(
@@ -159,6 +153,7 @@ setup(
                 'dumptree.c', 'generate.c', 'markdown.c', 'mkdio.c',
                 'resource.c', 'toc.c', 'version.c', 'xml.c', 'xmlpage.c',
                 'basename.c', 'emmatch.c', 'tags.c', 'html5.c',
+                'github_flavoured.c', 'setup.c', 'flags.c',
             ],
         )
     ],
