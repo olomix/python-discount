@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import urllib2
 
@@ -38,6 +39,9 @@ DEFAULT_DISCOUNT_CONFIGURE_OPTS = (
 
     # Turn on all stable optional features
     # '--enable-all-features '
+
+    # Build shared library
+    '--shared '
 )
 
 
@@ -89,39 +93,19 @@ class build_ext(_build_ext):
         else:
             discount_src_path = self.discount_src_path
 
-        if not os.path.exists(
-            os.path.join(discount_src_path, 'config.h')):
-            current_dir = os.getcwd()
-            os.chdir(discount_src_path)
-            subprocess.call(
-                ['./configure.sh',] + self.discount_configure_opts.split(),
-                env=os.environ
-            )
-            os.chdir(current_dir)
-
-        if not os.path.exists(
-            os.path.join(discount_src_path, 'blocktags')):
-            current_dir = os.getcwd()
-            os.chdir(discount_src_path)
-            with open('blocktags', 'wb') as f:
-                subprocess.call(['./mktags',], env=os.environ, stdout=f)
-            os.chdir(current_dir)
-
-        ext.sources = [
-            os.path.join(discount_src_path, s) for s in ext.sources
-        ]
-
-        ext.extra_compile_args += [
-            '-I%s' % discount_src_path,
-            '-DVERSION="%s"' % open(
-                os.path.join(discount_src_path, 'VERSION')
-            ).read().strip()
-        ]
-
-        _build_ext.build_extension(self, ext)
-
-        ext_filename = self.get_ext_filename(ext.name)
-
+        current_dir = os.getcwd()
+        os.chdir(discount_src_path)
+        subprocess.call(
+            ['./configure.sh',] + self.discount_configure_opts.split(),
+            env=os.environ
+        )
+        subprocess.call(['make',], env=os.environ)
+        os.chdir(current_dir)
+        shutil.copy(
+            os.path.realpath(os.path.join(discount_src_path, 'libmarkdown')),
+            self.get_ext_fullpath(ext.name),
+        )
+        
 
 setup(
     name='discount',
@@ -148,13 +132,7 @@ setup(
     ext_modules=[
         Extension(
             '_discount',
-            sources=[
-                'amalloc.c', 'Csio.c', 'css.c', 'docheader.c',
-                'dumptree.c', 'generate.c', 'markdown.c', 'mkdio.c',
-                'resource.c', 'toc.c', 'version.c', 'xml.c', 'xmlpage.c',
-                'basename.c', 'emmatch.c', 'tags.c', 'html5.c',
-                'github_flavoured.c', 'setup.c', 'flags.c',
-            ],
+            sources=[],
         )
     ],
 
