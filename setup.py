@@ -7,7 +7,7 @@ from distutils.command.build_ext import build_ext as _build_ext
 from distutils.core import setup, Extension
 
 
-DEFAULT_DISCOUNT_VERSION = '2.1.5a'
+DEFAULT_DISCOUNT_VERSION = '2.1.6'
 
 
 DEFAULT_DISCOUNT_DOWNLOAD_URL = (
